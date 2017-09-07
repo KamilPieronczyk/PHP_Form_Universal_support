@@ -1,6 +1,7 @@
 <?php
 require 'connect.php';
 require 'Form_Universal.class.php';
+require 'Form_Universal_Edit.class.php';
 require 'functions.php';
 ?>
 <?php
@@ -9,7 +10,7 @@ require 'functions.php';
       return $_POST['nick'];
     }
   }
-  $form = new Form_Universal ('example', array(
+  $form = new Form_Universal_Edit ('example',$_GET['id'], array(
     'text' => 'text',
     'special' => 'nick',
     'checkbox' => 'check'
@@ -44,16 +45,6 @@ require 'functions.php';
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
-    <table class="table">
-      <?php while($form->have_results()) :?>
-        <tr>
-          <td><?php $form->get_value_e('text') ?></td>
-          <td><?php $form->get_value_e('nick') ?></td>
-          <td><?php $form->get_value_e('check') ?></td>
-        </tr>
-      <?php endwhile; ?>
-    </table>
-
     <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>

@@ -9,6 +9,8 @@ class Form_Universal
   private $database_fields;
   private $form_fields_types;
   public $fields;
+  private $result;
+  private $row;
 
   function __construct($form_name,$fields = array())
   {
@@ -19,6 +21,11 @@ class Form_Universal
     $this->fields_type();
     $this->create_sql_table();
     $this->check_database_columns();
+    $sql = "SELECT * FROM `$this->form_name`";
+    $this->result = conn()->query($sql);
+    if (@$this->result->num_rows == 0) {
+      $this->row = null;
+    }
   }
 
   public function send()
@@ -167,9 +174,9 @@ class Form_Universal
         }
       }
     }
-
-    if (count($this->form_fields_types) > 1) {
+    if (count($this->form_fields_types) > 0) {
       foreach ($this->form_fields_types as $name => $data_type) {
+        $sql = "ALTER TABLE `$this->form_name` ADD ";
         switch ($data_type) {
           case 'int':
             $sql = "`$name` INT(6) UNSIGNED NOT NULL DEFAULT ''";
@@ -187,7 +194,7 @@ class Form_Universal
             $sql = "`$name` datetime NOT NULL DEFAULT NULL";
             $this->sql_send($sql);
             break;
-          default:
+          default:            
             $sql = "`$name` TEXT NOT NULL DEFAULT ''";
             $this->sql_send($sql);
             break;
@@ -255,6 +262,30 @@ class Form_Universal
             $this->form_fields_types[$value] = 'text';
           break;
       }
+    }
+  }
+
+  public function have_results()
+  {
+    if ($this->row = $this->result->fetch_assoc()) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+
+  public function get_value($name)
+  {
+    if (isset($this->row[$name])) {
+      return $this->row[$name];
+    }
+  }
+
+  public function get_value_e($name)
+  {
+    if (isset($this->row[$name])) {
+      echo $this->row[$name];
+      return $this->row[$name];
     }
   }
 }
