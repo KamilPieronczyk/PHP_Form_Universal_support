@@ -9,9 +9,8 @@ require 'functions.php';
       return $_POST['nick'];
     }
   }
-  $form = new Form ('example', array(
-    'text' => 'password',
-    'special' => 'nick',
+  $form = new Form_Universal ('example', array(
+    'text' => array('password2','nick'),
     'checkbox' => 'check'
   ));
   $form->send();
@@ -31,7 +30,7 @@ require 'functions.php';
     <form method="post">
       <fieldset class="form-group">
         <label for="exampleInputPassword1">Password</label>
-        <input type="text" name="password" class="form-control" id="exampleInputPassword1" value="">
+        <input type="text" name="password2" class="form-control" id="exampleInputPassword1" value="">
       </fieldset>
       <fieldset class="form-group">
         <label for="exampleInputPassword1">Password</label>

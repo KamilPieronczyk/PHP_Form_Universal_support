@@ -6,6 +6,8 @@
 class Form_Universal
 {
   public $form_name;
+  private $database_fields;
+  private $form_fields_types;
   public $fields;
 
   function __construct($form_name,$fields = array())
@@ -14,7 +16,9 @@ class Form_Universal
     foreach ($fields as $key => $value) {
     $this->fields[$key] = $value;
     }
-    $this->create_options_table();
+    $this->fields_type();
+    $this->create_sql_table();
+    $this->check_database_columns();
   }
 
   public function send()
@@ -22,54 +26,59 @@ class Form_Universal
     if ($_SERVER['REQUEST_METHOD'] != 'POST') {
       return 0;
     }
+    $sql = "INSERT INTO `$this->form_name` (";
+    foreach ($this->fields as $field_name) {
+      if (is_array($field_name)) {
+        foreach ($field_name as $name) {
+          $sql .= '`'.$name.'`,';
+        }
+      } else {
+        $sql .= '`'.$field_name.'`,';
+      }
+    }
+    if ($sql[strlen($sql)-1] == ',') $sql[strlen($sql)-1] = ' ';
+    $sql .= ") VALUES (";
     foreach ($this->fields as $type => $field_name) {
       switch ($type) {
         case 'checkbox':
           if (is_array($field_name)) {
             foreach ($field_name as $name) {
               if (isset($_POST[$name])) $value = 1; else $value = 0;
-              if (!$this->add_option($name,$value)) {
-                echo 'Error';
-              }
+              $sql .= "'$value',";
             }
           } else {
             if (isset($_POST[$field_name])) $value = 1; else $value = 0;
-            if (!$this->add_option($field_name,$value)) {
-              echo 'Error';
-            }
+            $sql .= "'$value',";
           }
           break;
         case 'special':
           if (is_array($field_name)) {
             foreach ($field_name as $name) {
-              if (!$this->add_option($name,call_user_func($name))) {
-                echo 'Error';
-              }
+              $sql .= "'".call_user_func($name)."',";
             }
           } else {
-            if (!$this->add_option($field_name,call_user_func($field_name))) {
-              echo 'Error';
-            }
+            $sql .= "'".call_user_func($field_name)."',";
           }
           break;
         default:
         if (is_array($field_name)) {
           foreach ($field_name as $name) {
             if (isset($_POST[$name])) {
-              if (!$this->add_option($name,$_POST[$name])) {
-                echo 'Error';
-              }
+              $sql .= "'$_POST[$name]',";
             }
           }
         } else {
           if (isset($_POST[$field_name])) {
-            if (!$this->add_option($field_name,$_POST[$field_name])) {
-              echo 'Error';
-            }
+            $sql .= "'$_POST[$field_name]',";
           }
         }
           break;
       }
+    }
+    $sql .= ")";
+    if ($sql[strlen($sql)-2] == ',') $sql[strlen($sql)-2] = ' ';
+    if (conn()->query($sql) === FALSE) {
+      echo 'Error';
     }
   }
 
@@ -82,153 +91,170 @@ class Form_Universal
         case 'checkbox':
           if (is_array($value))
             foreach ($value as $one_value) {
-              $sql .= "`$one_value` BOOLEAN DEFAULT '1'";
+              $sql .= "`$one_value` BOOLEAN DEFAULT '1', ";
             }
           else
-            $sql .= "`$value` BOOLEAN DEFAULT '1'";
+            $sql .= "`$value` BOOLEAN DEFAULT '1', ";
           break;
         case 'number':
           if (is_array($value))
             foreach ($value as $one_value) {
-              $sql .= "`$one_value` INT(6) UNSIGNED DEFAULT ''";
+              $sql .= "`$one_value` INT(6) UNSIGNED NOT NULL DEFAULT '', ";
             }
           else
-            $sql .= "`$value` INT(6) UNSIGNED DEFAULT ''";
+            $sql .= "`$value` INT(6) UNSIGNED NOT NULL DEFAULT '', ";
           break;
         case 'image':
           if (is_array($value))
             foreach ($value as $one_value) {
-              $sql .= "`$one_value` BLOB DEFAULT NULL";
+              $sql .= "`$one_value` BLOB NOT NULL DEFAULT NULL, ";
             }
           else
-            $sql .= "`$value` BLOB DEFAULT NULL";
+            $sql .= "`$value` BLOB NOT NULL DEFAULT NULL, ";
           break;
         case 'date':
           if (is_array($value))
             foreach ($value as $one_value) {
-              $sql .= "`$one_value` datetime DEFAULT NULL";
+              $sql .= "`$one_value` datetime NOT NULL DEFAULT NULL, ";
             }
           else
-            $sql .= "`$value` datetime DEFAULT NULL";
+            $sql .= "`$value` datetime NOT NULL DEFAULT NULL, ";
           break;
         case 'special':
           if (is_array($value))
             foreach ($value as $one_value) {
-              $sql .= "`$one_value` TEXT DEFAULT ''";
+              $sql .= "`$one_value` TEXT NOT NULL DEFAULT '', ";
             }
           else
-            $sql .= "`$value` TEXT DEFAULT ''";
+            $sql .= "`$value` TEXT NOT NULL DEFAULT '', ";
           break;
         default:
           if (is_array($value))
             foreach ($value as $one_value) {
-              $sql .= "`$one_value` TEXT DEFAULT ''";
+              $sql .= "`$one_value` TEXT NOT NULL DEFAULT '', ";
             }
           else
-            $sql .= "`$value` TEXT DEFAULT ''";
+            $sql .= "`$value` TEXT NOT NULL DEFAULT '', ";
           break;
       }
     }
 
-    $sql .= ''
+    $sql .= "PRIMARY KEY  (`id`) )";
       if(conn()->query($sql) === TRUE) return 1;
       else return 0;
   }
 
-  // public function add_option($option_name, $value)
-  // {
-  //   if ($this->form_name=='') {
-  //     $sql = "SELECT * FROM options WHERE option_name = '$option_name' AND form_id = ''";
-  //     $result = conn()->query($sql);
-  //     if(@$result->num_rows>1) return 0;
-  //     if(@$result->num_rows == 1) {
-  //       $this->save_option($option_name,$value);
-  //       return 1;
-  //     }
-  //   } elseif ($this->form_name!='') {
-  //     $sql = "SELECT * FROM options WHERE option_name = '$option_name' AND form_id = '$this->form_name'";
-  //     $result = conn()->query($sql);
-  //     if(@$result->num_rows>1) return 0;
-  //     if(@$result->num_rows == 1) {
-  //       $this->save_option($option_name,$value);
-  //       return 1;
-  //     }
-  //   }
-  //   $sql = "INSERT INTO options VALUES (NULL, '$option_name', '$value', '$this->form_name')";
-  //   if(conn()->query($sql) === TRUE) return 1;
-  //   else return 0;
-  // }
-  //
-  // public function get_option($option_name)
-  // {
-  //   if ($this->form_name == '') {
-  //     $sql = "SELECT value FROM options WHERE option_name = '$option_name' AND form_id = ''";
-  //   } else {
-  //     $sql = "SELECT value FROM options WHERE option_name = '$option_name' AND form_id = '$this->form_name'";
-  //   }
-  //   $result = conn()->query($sql);
-  //   if (@$result->num_rows>0) {
-  //     $row = $result->fetch_assoc();
-  //     return $row['value'];
-  //   } else {
-  //     return ;
-  //   }
-  // }
-  //
-  // public function save_option($option_name, $value)
-  // {
-  //   if ($this->form_name == '') {
-  //     $sql = "SELECT * FROM options WHERE option_name = '$option_name' AND form_id = ''";
-  //     $result = conn()->query($sql);
-  //     if ($result->num_rows>1) {
-  //       return 0;
-  //     } else {
-  //       $row = $result->fetch_assoc();
-  //       if ($row['form_id'] != '') {
-  //         return 0;
-  //       }
-  //       $sql = "UPDATE options SET value = '$value' WHERE option_name = '$option_name' AND form_id = ''";
-  //       if(conn()->query($sql) === TRUE) return 1;
-  //       else return 0;
-  //     }
-  //   } else {
-  //     $sql = "SELECT value FROM options WHERE option_name = '$option_name' AND form_id = '$this->form_name'";
-  //     $result = conn()->query($sql);
-  //     if ($result->num_rows==1) {
-  //       $sql = "UPDATE options SET value = '$value' WHERE option_name = '$option_name' AND form_id = '$this->form_name'";
-  //       if(conn()->query($sql) === TRUE) return 1;
-  //       else return 0;
-  //     } else {
-  //       return 0;
-  //     }
-  //   }
-  // }
-  //
-  // function unset_option($option_name)
-  // {
-  //   if ($this->form_name=='') {
-  //     $sql = "DELETE FROM options WHERE option_name = '$option_name' AND form_id <> ''";
-  //   } else {
-  //     $this->form_name = explode('-',$form_id);
-  //     $this->form_name = $form_id[0];
-  //     $sql = "DELETE FROM options WHERE form_id LIKE '%$this->form_name%' AND option_name = '$option_name'";
-  //   }
-  //   if (conn()->query($sql) === TRUE) {
-  //     return 1;
-  //   } else {
-  //     return 0;
-  //   }
-  // }
-  //
-  // function unset_options()
-  // {
-  //   if ($this->form_name != '') {
-  //     $sql = "DELETE FROM options WHERE form_id = '$this->form_name'";
-  //   }
-  //   if (conn()->query($sql) === TRUE) {
-  //     return 1;
-  //   } else {
-  //     return 0;
-  //   }
-  // }
+  private function check_database_columns()
+  {
+    $sql = "select column_name, data_type from information_schema.columns where table_name = '$this->form_name'";
+    $result = conn()->query($sql);
+    while ($row = $result->fetch_assoc()) {
+      $database_fields[$row['column_name']] = $row['data_type'];
+    }
+    foreach ($database_fields as $column_name => $data_type) {
+      if (isset($this->form_fields_types[$column_name]) && $this->form_fields_types[$column_name] == $data_type) {
+        unset($database_fields[$column_name]);
+        unset($this->form_fields_types[$column_name]);
+      }
+    }
+
+    if (count($database_fields) > 1) {
+      foreach ($database_fields as $column_name => $data_type) {
+        if ($column_name != 'id') {
+          $sql = "ALTER TABLE $this->form_name DROP COLUMN ";
+          $sql .= "`".$column_name.'`';
+          conn()->query($sql);
+        }
+      }
+    }
+
+    if (count($this->form_fields_types) > 1) {
+      foreach ($this->form_fields_types as $name => $data_type) {
+        switch ($data_type) {
+          case 'int':
+            $sql = "`$name` INT(6) UNSIGNED NOT NULL DEFAULT ''";
+            $this->sql_send($sql);
+            break;
+          case 'tinyint':
+            $sql = "`$name` BOOLEAN NOT NULL DEFAULT 1";
+            $this->sql_send($sql);
+            break;
+          case 'blob':
+            $sql = "`$name`  BLOB DEFAULT NOT NULL NULL";
+            $this->sql_send($sql);
+            break;
+          case 'datetime':
+            $sql = "`$name` datetime NOT NULL DEFAULT NULL";
+            $this->sql_send($sql);
+            break;
+          default:
+            $sql = "`$name` TEXT NOT NULL DEFAULT ''";
+            $this->sql_send($sql);
+            break;
+        }
+      }
+    }
+  }
+
+  private function sql_send($value)
+  {
+    $sql = "ALTER TABLE $this->form_name ADD ".$value;
+    conn()->query($sql);
+  }
+
+  private function fields_type()
+  {
+    foreach ($this->fields as $key => $value) {
+      switch ($key) {
+        case 'checkbox':
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $this->form_fields_types[$one_value] = 'tinyint';
+            }
+          else
+            $this->form_fields_types[$value] = 'tinyint';
+          break;
+        case 'number':
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $this->form_fields_types[$one_value] = 'int';
+            }
+          else
+            $this->form_fields_types[$value] = 'int';
+          break;
+        case 'image':
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $this->form_fields_types[$one_value] = 'blob';
+            }
+          else
+            $this->form_fields_types[$value] = 'blob';
+          break;
+        case 'date':
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $this->form_fields_types[$one_value] = 'datetime';
+            }
+          else
+            $this->form_fields_types[$value] = 'datetime';
+          break;
+        case 'special':
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $this->form_fields_types[$one_value] = 'text';
+            }
+          else
+            $this->form_fields_types[$value] = 'text';
+          break;
+        default:
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $this->form_fields_types[$one_value] = 'text';
+            }
+          else
+            $this->form_fields_types[$value] = 'text';
+          break;
+      }
+    }
+  }
 }
