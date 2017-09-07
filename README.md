@@ -20,6 +20,21 @@ Available types of inputs:
 - date
 - special (Your own function supports this field)
 
+Example used special field:
+```php
+  function nick() {
+    if (isset($_POST['nick'])) {
+      return $_POST['nick'];
+    }
+  }
+  $form = new Form_Universal ('example', array(
+    'text' => 'text',
+    'special' => 'nick',
+    'checkbox' => 'check'
+  ));
+  $form->send();
+```
+
 Form method must be a POST
 
 Function to describe data from database:
@@ -34,6 +49,7 @@ Function to describe data from database:
   <?php endwhile; ?>
 ```
 function **get_value_e** - written a data
+
 function **get_value** - returned a data
 
 function **send** - sending a data from form to a database
