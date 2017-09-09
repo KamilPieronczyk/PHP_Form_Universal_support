@@ -66,3 +66,17 @@ Example
   $form->send();
 ```
 Second parameter must be a row's id in a database
+
+To delete rows from the database use class called **"Form_Universal_Delete"**
+Arguments:
+1. Form name
+2. Field name with the id value
+3. Name of column in a database (default 'id')
+
+Example:
+```php
+$form_delete = new Form_Universal_Delete('example','id');
+<?php while($form->have_results()) : ?>
+<td><form method="post"><input type="hidden" name='id' value="<?php $form->get_value_e('id') ?>"><button type="submit" class="btn btn-danger">Delete</button></form></td>
+<?php endwhile; ?>
+```
