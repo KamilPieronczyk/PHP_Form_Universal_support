@@ -93,4 +93,12 @@ class Form_Universal_Edit extends Form_Universal
       return $this->row_result[$name];
     }
   }
+
+  public function delete_row($delete_btn)
+  {
+    if (isset($_POST[$delete_btn])) {
+      $sql = "DELETE FROM `$form_name` WHERE `id` = '$this->row_id'";
+      if (conn()->query($sql) === TRUE) return 1; else return 0;
+    }
+  }
 }

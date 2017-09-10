@@ -194,7 +194,7 @@ class Form_Universal
             $sql = "`$name` datetime NOT NULL DEFAULT NULL";
             $this->sql_send($sql);
             break;
-          default:            
+          default:
             $sql = "`$name` TEXT NOT NULL DEFAULT ''";
             $this->sql_send($sql);
             break;
@@ -286,6 +286,18 @@ class Form_Universal
     if (isset($this->row[$name])) {
       echo $this->row[$name];
       return $this->row[$name];
+    }
+  }
+
+  public function delete_row($delete_btn,$column = 'id',$id = null)
+  {
+    if (isset($_POST[$delete_btn])) {
+      if (!is_null($id)) {
+        $sql = "DELETE FROM `$form_name` WHERE `$column` = '$id'";
+      } else {
+        $sql = "DELETE FROM `$form_name` WHERE `$column` = '$_POST[$delete_btn]'";
+      }
+      if (conn()->query($sql) === TRUE) return 1; else return 0;
     }
   }
 }
