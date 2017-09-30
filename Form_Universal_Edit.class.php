@@ -32,7 +32,7 @@ class Form_Universal_Edit extends Form_Universal
     }
     foreach ($this->fields as $name => $value) {
       switch ($name) {
-        case 'checkbox':
+        case ($type == 'checkbox'):
           if (is_array($value)) {
             foreach ($value as $one_value) {
               if (isset($_POST[$one_value])) $value1 = 1; else $value1 = 0;
@@ -43,7 +43,16 @@ class Form_Universal_Edit extends Form_Universal
             $this->update_value($value, $value1);
           }
           break;
-        case 'special':
+        case ($type == 'special'):
+          if (is_array($value)) {
+            foreach ($value as $one_value) {
+              $this->update_value($one_value, call_user_func($one_value));
+            }
+          } else {
+            $this->update_value($value, call_user_func($value));
+          }
+          break;
+        case (strpos($type,'special-') !== false):
           if (is_array($value)) {
             foreach ($value as $one_value) {
               $this->update_value($one_value, call_user_func($one_value));

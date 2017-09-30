@@ -11,7 +11,7 @@ require 'functions.php';
   }
   $form = new Form_Universal ('example', array(
     'text' => 'text',
-    'special' => 'nick',
+    'special' => 'nick',      
     'checkbox' => 'check'
   ));
   $form->send();
@@ -42,7 +42,7 @@ require 'functions.php';
           <input type="checkbox" name='check' <?php if ($form->get_value('check')) echo 'checked'; ?>> Check me out
         </label>
       </div>
-      <button type="submit" class="btn btn-primary">Submit</button>
+      <button type="submit" name="example" class="btn btn-primary">Submit</button>
     </form>
     <table class="table">
       <?php while($form->have_results()) :?>

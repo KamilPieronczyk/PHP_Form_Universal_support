@@ -33,6 +33,10 @@ class Form_Universal
     if ($_SERVER['REQUEST_METHOD'] != 'POST') {
       return 0;
     }
+    if (!isset($_POST[$this->form_name])) {
+      return 0;
+    }
+    unset($_POST[$this->form_name]);
     $sql = "INSERT INTO `$this->form_name` (";
     foreach ($this->fields as $field_name) {
       if (is_array($field_name)) {
@@ -46,8 +50,8 @@ class Form_Universal
     if ($sql[strlen($sql)-1] == ',') $sql[strlen($sql)-1] = ' ';
     $sql .= ") VALUES (";
     foreach ($this->fields as $type => $field_name) {
-      switch ($type) {
-        case 'checkbox':
+      switch (true) {
+        case ($type == 'checkbox'):
           if (is_array($field_name)) {
             foreach ($field_name as $name) {
               if (isset($_POST[$name])) $value = 1; else $value = 0;
@@ -58,7 +62,16 @@ class Form_Universal
             $sql .= "'$value',";
           }
           break;
-        case 'special':
+        case ($type == 'special'):
+          if (is_array($field_name)) {
+            foreach ($field_name as $name) {
+              $sql .= "'".call_user_func($name)."',";
+            }
+          } else {
+            $sql .= "'".call_user_func($field_name)."',";
+          }
+          break;
+        case (strpos($type,'special-') !== false):
           if (is_array($field_name)) {
             foreach ($field_name as $name) {
               $sql .= "'".call_user_func($name)."',";
@@ -94,8 +107,8 @@ class Form_Universal
     $sql = "CREATE TABLE IF NOT EXISTS `$this->form_name`(
       `id` INT(6) UNSIGNED AUTO_INCREMENT,";
     foreach ($this->fields as $key => $value) {
-      switch ($key) {
-        case 'checkbox':
+      switch (true) {
+        case ($key =='checkbox'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $sql .= "`$one_value` BOOLEAN DEFAULT '1', ";
@@ -103,7 +116,7 @@ class Form_Universal
           else
             $sql .= "`$value` BOOLEAN DEFAULT '1', ";
           break;
-        case 'number':
+        case ($key =='number'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $sql .= "`$one_value` INT(6) UNSIGNED NOT NULL DEFAULT '', ";
@@ -111,7 +124,7 @@ class Form_Universal
           else
             $sql .= "`$value` INT(6) UNSIGNED NOT NULL DEFAULT '', ";
           break;
-        case 'image':
+        case ($key =='image'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $sql .= "`$one_value` BLOB NOT NULL DEFAULT NULL, ";
@@ -119,7 +132,7 @@ class Form_Universal
           else
             $sql .= "`$value` BLOB NOT NULL DEFAULT NULL, ";
           break;
-        case 'date':
+        case ($key =='date'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $sql .= "`$one_value` datetime NOT NULL DEFAULT NULL, ";
@@ -127,13 +140,22 @@ class Form_Universal
           else
             $sql .= "`$value` datetime NOT NULL DEFAULT NULL, ";
           break;
-        case 'special':
+        case ($key == 'special'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $sql .= "`$one_value` TEXT NOT NULL DEFAULT '', ";
             }
           else
             $sql .= "`$value` TEXT NOT NULL DEFAULT '', ";
+          break;
+        case (strpos($key,'special-') !== false):
+          $key = str_replace('special-','',$key);
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $sql .= "`$one_value` $key DEFAULT NULL, ";
+            }
+          else
+            $sql .= "`$value` $key DEFAULT NULL, ";
           break;
         default:
           if (is_array($value))
@@ -145,7 +167,6 @@ class Form_Universal
           break;
       }
     }
-
     $sql .= "PRIMARY KEY  (`id`) )";
       if(conn()->query($sql) === TRUE) return 1;
       else return 0;
@@ -158,6 +179,7 @@ class Form_Universal
     while ($row = $result->fetch_assoc()) {
       $database_fields[$row['column_name']] = $row['data_type'];
     }
+
     foreach ($database_fields as $column_name => $data_type) {
       if (isset($this->form_fields_types[$column_name]) && $this->form_fields_types[$column_name] == $data_type) {
         unset($database_fields[$column_name]);
@@ -176,10 +198,9 @@ class Form_Universal
     }
     if (count($this->form_fields_types) > 0) {
       foreach ($this->form_fields_types as $name => $data_type) {
-        $sql = "ALTER TABLE `$this->form_name` ADD ";
         switch ($data_type) {
           case 'int':
-            $sql = "`$name` INT(6) UNSIGNED NOT NULL DEFAULT ''";
+            $sql = "`$name` INT(6) UNSIGNED DEFAULT NULL";
             $this->sql_send($sql);
             break;
           case 'tinyint':
@@ -187,15 +208,19 @@ class Form_Universal
             $this->sql_send($sql);
             break;
           case 'blob':
-            $sql = "`$name`  BLOB DEFAULT NOT NULL NULL";
+            $sql = "`$name`  BLOB DEFAULT NULL";
             $this->sql_send($sql);
             break;
           case 'datetime':
             $sql = "`$name` datetime NOT NULL DEFAULT NULL";
             $this->sql_send($sql);
             break;
-          default:
+          case 'text':
             $sql = "`$name` TEXT NOT NULL DEFAULT ''";
+            $this->sql_send($sql);
+            break;
+          default:
+            $sql = "`$name` $data_type DEFAULT NULL";
             $this->sql_send($sql);
             break;
         }
@@ -205,15 +230,15 @@ class Form_Universal
 
   private function sql_send($value)
   {
-    $sql = "ALTER TABLE $this->form_name ADD ".$value;
+    $sql = "ALTER TABLE $this->form_name ADD $value";    
     conn()->query($sql);
   }
 
   private function fields_type()
   {
     foreach ($this->fields as $key => $value) {
-      switch ($key) {
-        case 'checkbox':
+      switch (true) {
+        case ($key == 'checkbox'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $this->form_fields_types[$one_value] = 'tinyint';
@@ -221,7 +246,7 @@ class Form_Universal
           else
             $this->form_fields_types[$value] = 'tinyint';
           break;
-        case 'number':
+        case ($key == 'number'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $this->form_fields_types[$one_value] = 'int';
@@ -229,7 +254,7 @@ class Form_Universal
           else
             $this->form_fields_types[$value] = 'int';
           break;
-        case 'image':
+        case ($key == 'image'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $this->form_fields_types[$one_value] = 'blob';
@@ -237,7 +262,7 @@ class Form_Universal
           else
             $this->form_fields_types[$value] = 'blob';
           break;
-        case 'date':
+        case ($key == 'date'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $this->form_fields_types[$one_value] = 'datetime';
@@ -245,13 +270,22 @@ class Form_Universal
           else
             $this->form_fields_types[$value] = 'datetime';
           break;
-        case 'special':
+        case ($key == 'special'):
           if (is_array($value))
             foreach ($value as $one_value) {
               $this->form_fields_types[$one_value] = 'text';
             }
           else
             $this->form_fields_types[$value] = 'text';
+          break;
+        case (strpos($key,'special-') !== false):
+          $key = str_replace('special-','',$key);
+          if (is_array($value))
+            foreach ($value as $one_value) {
+              $this->form_fields_types[$one_value] = $key;
+            }
+          else
+            $this->form_fields_types[$value] = $key;
           break;
         default:
           if (is_array($value))

@@ -2,8 +2,9 @@
 /**
  *
  */
-class Form_Universal_Delete extends Form_Universal
+class Form_Universal_Delete
 {
+  private $form_name;
   function __construct($form_name,$delete_btn,$column = 'id')
   {
     $this->form_name = $form_name;
